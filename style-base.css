@@ -312,7 +312,7 @@ svg {
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 9999;
+  z-index: 100;
   background: transparent;
   border-bottom: 1px solid transparent;
   transition: background 0.35s var(--ease), border-color 0.35s var(--ease),
@@ -328,7 +328,7 @@ svg {
 
 .site-header {
   isolation: isolate;
-  z-index: 9999 !important;
+  z-index: 100
 }
 
 .site-header {
@@ -681,7 +681,16 @@ model-viewer {
   --poster-color: transparent;
   --progress-bar-color: var(--gold);
   will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+  touch-action: pan-y;
+}
+
+.model-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  touch-action: pan-y;
+  pointer-events: none;
 }
 
 /* Shimmer dourado enquanto o GLB carrega */
@@ -3470,7 +3479,7 @@ html:not(.dark) .form-card-glass {
 .social-proof-bar {
   position: sticky;
   top: var(--header-h);
-  z-index: 10 !important;
+  z-index: 50 !important;
   background: linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 70%, #2a2110 100%);
   border-bottom: 1px solid color-mix(in srgb, var(--gold) 25%, transparent);
   padding: var(--social-bar-py) var(--social-bar-px);

@@ -251,9 +251,38 @@ function initModelViewer() {
   const mv = document.getElementById('solar-model');
   if (!mv) return;
 
-  // Quando o modelo carrega, adicionar uma classe para efeitos CSS
-  mv.addEventListener('load', () => {
-    mv.classList.add('loaded');
+  const whenReady = (window.customElements && customElements.whenDefined)
+    ? customElements.whenDefined('model-viewer')
+    : Promise.resolve();
+
+  whenReady.then(() => {
+    mv.addEventListener('load', () => {
+      mv.classList.add('loaded');
+      const scene = mv.scene;
+      if (scene) {
+        scene.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.castShadow = false;
+            obj.receiveShadow = false;
+          }
+        });
+      }
+    });
+
+    if ('IntersectionObserver' in window) {
+      const visObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            mv.play();
+            mv.autoRotate = true;
+          } else {
+            mv.pause();
+            mv.autoRotate = false;
+          }
+        });
+      }, { threshold: 0 });
+      visObserver.observe(mv);
+    }
   });
 }
 
