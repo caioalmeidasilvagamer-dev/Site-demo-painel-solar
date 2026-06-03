@@ -1930,7 +1930,15 @@ html:not(.dark) .stat-label {
   letter-spacing: 0.8px;
   cursor: pointer;
   margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: background 0.15s, transform 0.15s;
+}
+
+.btn-calc svg {
+  flex-shrink: 0;
 }
 
 .btn-calc:hover {
