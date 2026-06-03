@@ -335,8 +335,10 @@
   /* Selos e Certificações — desktop */
   .selos-section .title-sub {
     display: block;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: 400;
     color: var(--text-muted);
+    margin-top: 8px;
   }
 
   .selos-grid {
@@ -360,6 +362,17 @@
     transition: all 0.3s var(--ease);
   }
 
+  .selo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    margin-bottom: 8px;
+  }
+
   .selos-extra {
     display: flex;
     flex-direction: row;
@@ -372,16 +385,21 @@
     border: 1px solid var(--border-subtle);
   }
 
-  .selos-extra-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
-    font-size: 0.9rem;
-    color: var(--text-muted);
-  }
+   .selos-extra-item {
+     flex: 1;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     text-align: center;
+     gap: 12px;
+     font-size: 0.9rem;
+     color: var(--text-muted);
+   }
+
+   .selos-extra-item svg {
+     display: block;
+     margin: 0 auto 8px;
+   }
 }
 
 
