@@ -203,11 +203,9 @@
     <!-- COLUNA DIREITA: model-viewer contido -->
     <div class="hero-model-col" aria-hidden="true">
       <model-viewer id="solar-model" src="assets/models/solar-panel.glb" alt="Painel solar 3D" interaction-prompt="none"
-        auto-rotate rotation-per-second="8deg" shadow-intensity="0" environment-image="neutral"
-        exposure="1.5" loading="lazy" reveal="auto"
-        camera-orbit="15deg 65deg 30m" field-of-view="90deg" min-field-of-view="30deg"
-        max-field-of-view="60deg"
-        draco-decoder-location="https://www.gstatic.com/draco/versioned/decoders/1.5.7/">
+        auto-rotate rotation-per-second="8deg" shadow-intensity="0" environment-image="neutral" exposure="1.5"
+        loading="lazy" reveal="auto" camera-orbit="15deg 65deg 30m" field-of-view="90deg" min-field-of-view="30deg"
+        max-field-of-view="60deg" draco-decoder-location="https://www.gstatic.com/draco/versioned/decoders/1.5.7/">
         <div slot="poster" class="model-poster">
           <div class="model-shimmer"></div>
         </div>
@@ -597,7 +595,7 @@
           </div>
         </div>
 
-        <div class="row row-2">
+        <div class="row row-3">
           <div class="field">
             <label>Estado (UF)</label>
             <select id="uf">
@@ -632,7 +630,11 @@
             </select>
           </div>
           <div class="field">
-            <label>Tipo de im&oacute;vel</label>
+            <label>Cidade</label>
+            <input type="text" id="cidade" placeholder="Ex: Rio de Janeiro" />
+          </div>
+          <div class="field">
+            <label>Tipo de imóvel</label>
             <select id="tipo">
               <option value="residencial">Residencial</option>
               <option value="comercial">Comercial</option>
@@ -668,7 +670,8 @@
 
         <button class="btn-calc" onclick="calcularSolar()">
           CALCULAR MINHA ECONOMIA
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="4" />
             <line x1="12" y1="2" x2="12" y2="5" />
             <line x1="12" y1="19" x2="12" y2="22" />
@@ -728,6 +731,31 @@
           </div>
 
           <!-- Detalhes Financeiros Adicionais -->
+          <div class="calc-finance-item">
+            <div class="calc-finance-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                <polyline points="13 2 13 9 20 9" />
+              </svg>
+              Conta atual (sem solar)
+            </div>
+            <div class="calc-finance-value" id="res-sem-solar">—</div>
+            <div class="calc-finance-desc">Valor mensal que você paga hoje</div>
+          </div>
+
+          <div class="calc-finance-item">
+            <div class="calc-finance-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
+              Conta com solar
+            </div>
+            <div class="calc-finance-value" id="res-com-solar">—</div>
+            <div class="calc-finance-desc">Apenas a taxa de disponibilidade mínima</div>
+          </div>
           <div class="calc-finance-details">
             <div class="calc-finance-item">
               <div class="calc-finance-label">

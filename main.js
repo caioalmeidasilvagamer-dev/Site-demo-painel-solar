@@ -468,71 +468,161 @@ function animateRaios() {
 
 /* ============================================================
    FASE 3 — CALCULADORA DE ECONOMIA
+   Lógica baseada na matemática do Azume CRM Solar
    ============================================================ */
 
-function calcularSolar() {
-  const HSP = {
-    AC: 4.7, AL: 5.9, AM: 4.8, AP: 4.8, BA: 5.9, CE: 6.0, DF: 5.5, ES: 5.1,
-    GO: 5.5, MA: 5.8, MG: 5.2, MS: 5.4, MT: 5.5, PA: 4.9, PB: 6.0, PE: 5.9,
-    PI: 6.1, PR: 4.6, RJ: 5.1, RN: 6.1, RO: 4.8, RR: 5.0, RS: 4.4, SC: 4.5,
-    SE: 5.8, SP: 5.0, TO: 5.6
-  };
-  const TARIFA = {
-    AC: 0.85, AL: 0.92, AM: 0.88, AP: 0.86, BA: 0.91, CE: 0.95, DF: 0.93, ES: 0.94,
-    GO: 0.90, MA: 0.87, MG: 0.97, MS: 0.91, MT: 0.89, PA: 0.86, PB: 0.94, PE: 0.96,
-    PI: 0.88, PR: 0.92, RJ: 1.02, RN: 0.93, RO: 0.87, RR: 0.85, RS: 0.95, SC: 0.91,
-    SE: 0.90, SP: 1.05, TO: 0.89
-  };
-  const TAXA_DISP = { mono: 30, bi: 50, tri: 100 };
+/* ----------------------------------------------------------
+   DADOS DE REFERÊNCIA
+   ---------------------------------------------------------- */
 
+// HSP (Horas de Sol Pleno) médias por estado — Atlas CRESESB
+const HSP_UF = {
+  AC: 4.7, AL: 5.9, AM: 4.8, AP: 4.8, BA: 5.9, CE: 6.0, DF: 5.5, ES: 5.1,
+  GO: 5.5, MA: 5.8, MG: 5.2, MS: 5.4, MT: 5.5, PA: 4.9, PB: 6.0, PE: 5.9,
+  PI: 6.1, PR: 4.6, RJ: 5.1, RN: 6.1, RO: 4.8, RR: 5.0, RS: 4.4, SC: 4.5,
+  SE: 5.8, SP: 5.0, TO: 5.6
+};
+
+// Tarifa média kWh por estado (R$/kWh) — base ANEEL 2024/2025
+// Equivalente ao kwhPrice retornado pelo Azume
+const TARIFA_UF = {
+  AC: 0.85, AL: 0.92, AM: 0.88, AP: 0.86, BA: 0.91, CE: 0.95, DF: 0.93, ES: 0.94,
+  GO: 0.90, MA: 0.87, MG: 0.97, MS: 0.91, MT: 0.89, PA: 0.86, PB: 0.94, PE: 0.96,
+  PI: 0.88, PR: 0.92, RJ: 1.02, RN: 0.93, RO: 0.87, RR: 0.85, RS: 0.95, SC: 0.91,
+  SE: 0.90, SP: 1.05, TO: 0.89
+};
+
+// Taxa de disponibilidade (kWh mínimos faturados) por tipo de ligação
+// Equivalente ao desconto de consumo mínimo que o Azume aplica
+const TAXA_DISP = { mono: 30, bi: 50, tri: 100 };
+
+// Custo médio de instalação por kWp (R$) — mercado Brasil 2025
+const CUSTO_KWP = 4500;
+
+// Potência do painel padrão (W)
+const PAINEL_W = 550;
+
+// Performance Ratio — eficiência real do sistema (perdas térmicas, cabeamento, inversores)
+// O Azume usa internamente ~0.78
+const PR = 0.78;
+
+// Inflação anual estimada para projeção de fluxo de caixa (%)
+// O Azume retorna inflation: 10
+const INFLACAO_ANUAL = 0.10;
+
+/* ----------------------------------------------------------
+   FUNÇÃO PRINCIPAL
+   ---------------------------------------------------------- */
+
+function calcularSolar() {
   const uf = document.getElementById('uf').value;
   const conta = parseFloat(document.getElementById('conta').value);
   const ligacao = document.getElementById('ligacao').value;
+  const cidade = document.getElementById('cidade') ? document.getElementById('cidade').value.trim() : '';
 
   if (!uf || !conta || conta <= 0) {
     alert('Preencha o estado e o valor da conta de energia.');
     return;
   }
 
-  const hsp = HSP[uf] || 5.0;
-  const tarifa = TARIFA[uf] || 0.95;
+  /* ---- 1. VARIÁVEIS BASE ---- */
+  const hsp = HSP_UF[uf] || 5.0;
+  const tarifa = TARIFA_UF[uf] || 0.95;
   const taxaDisp = TAXA_DISP[ligacao] || 30;
-  const PR = 0.78;
-  const CUSTO_KWP = 4000;
-  const PAINEL_W = 550;
 
-  const consumo_kwh = conta / tarifa;
-  const consumo_util = Math.max(consumo_kwh - taxaDisp, 0);
+  /* ---- 2. CONSUMO (equivalente ao avgConsumption do Azume) ----
+     avgConsumption = valor_conta / kwhPrice
+     Desconta a taxa de disponibilidade para obter o consumo
+     efetivamente compensável pelo sistema solar.                  */
+  const consumo_kwh = conta / tarifa;                         // kWh/mês total faturado
+  const consumo_util = Math.max(consumo_kwh - taxaDisp, 0);   // kWh/mês compensável
+
+  /* ---- 3. DIMENSIONAMENTO DO SISTEMA ----
+     kWp = consumo_kwh / (HSP × 30dias × PR)
+     Equivalente ao dimensionamento interno do Azume para Grupo B  */
   const kwp = consumo_kwh / (hsp * 30 * PR);
-  const geracao_mensal = Math.round(kwp * hsp * 30 * PR);
+  const geracao_mensal = Math.round(kwp * hsp * 30 * PR);     // kWh/mês gerado
+  const paineis = Math.ceil((kwp * 1000) / PAINEL_W);  // quantidade de painéis
+
+  /* ---- 4. PREÇO FINAL DO SISTEMA (equivalente a finalPrice) ---- */
+  const finalPrice = Math.round(kwp * CUSTO_KWP);
+
+  /* ---- 5. ECONOMIA MENSAL ----
+     Azume: noSystemMonthlyPrice - systemMonthlyPrice
+     noSystemMonthlyPrice = valor da conta atual
+     systemMonthlyPrice   = taxa de disponibilidade × tarifa (o mínimo que ainda paga)
+     Economia = consumo_util × tarifa                                 */
+  const noSystemMonthlyPrice = Math.round(conta);
+  const systemMonthlyPrice = Math.round(taxaDisp * tarifa);
   const economia_mensal = Math.round(consumo_util * tarifa);
   const economia_anual = economia_mensal * 12;
-  const investimento = Math.round(kwp * CUSTO_KWP);
-  const paineis = Math.ceil((kwp * 1000) / PAINEL_W);
-  const payback_anos = investimento / economia_mensal / 12;
-  
-  // Cálculos adicionais para seção financeira detalhada
-  const economia_total_25_anos = Math.round(economia_mensal * 12 * 25);
-  const roi = Math.round((economia_total_25_anos - investimento) / investimento * 100);
-  const co2_evitado = Math.round(kwp * hsp * 30 * PR * 12 * 25 * 0.000084); // kg CO2/kWh = 0.000084 ton
 
-  const fmt = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  /* ---- 6. PAYBACK (equivalente a paybackYears / paybackMonths) ----
+     Azume calcula o ponto onde o cashFlow acumulado cruza zero.
+     Aqui fazemos o mesmo com projeção de inflação.                   */
+  let acumulado = -finalPrice;
+  let paybackAnos = 0;
+  let paybackMeses = 0;
+  let economia_ano = economia_anual;
 
-  document.getElementById('res-economia').textContent = 'R$ ' + fmt(economia_mensal);
-  document.getElementById('res-anual').textContent = 'R$ ' + fmt(economia_anual);
-  document.getElementById('res-kwp').textContent = kwp.toFixed(1) + ' kWp';
+  for (let ano = 1; ano <= 25; ano++) {
+    const anterior = acumulado;
+    acumulado += economia_ano;
+    if (anterior < 0 && acumulado >= 0 && paybackAnos === 0) {
+      // interpolação para meses exatos
+      paybackAnos = ano - 1;
+      paybackMeses = Math.round((-anterior / economia_ano) * 12);
+      if (paybackMeses === 12) { paybackAnos++; paybackMeses = 0; }
+    }
+    economia_ano = economia_ano * (1 + INFLACAO_ANUAL); // corrige pela inflação
+  }
+
+  /* ---- 7. CASH FLOW 25 ANOS (equivalente ao array cashFlow do Azume) ---- */
+  const cashFlow = [];
+  let fluxo = -finalPrice;
+  let eco = economia_anual;
+  for (let ano = 1; ano <= 25; ano++) {
+    fluxo += eco;
+    cashFlow.push(Math.round(fluxo));
+    eco = eco * (1 + INFLACAO_ANUAL);
+  }
+
+  /* ---- 8. TOTAIS FINAIS ---- */
+  const totalEconomy = cashFlow[24] + finalPrice; // economia bruta em 25 anos
+  const roi = Math.round(((cashFlow[24]) / finalPrice) * 100);
+  const co2_evitado = Math.round(geracao_mensal * 12 * 25 * 0.000084); // toneladas CO₂
+
+  /* ---- 9. FORMATAÇÃO ---- */
+  const fmt = n => Math.round(n).toLocaleString('pt-BR');
+  const fmtR$ = n => 'R$ ' + fmt(n);
+
+  /* ---- 10. ATUALIZAR DOM — mesmos IDs do HTML original ---- */
+  document.getElementById('res-economia').textContent = fmtR$(economia_mensal);
+  document.getElementById('res-anual').textContent = fmtR$(economia_anual);
+  document.getElementById('res-kwp').textContent = kwp.toFixed(2) + ' kWp';
   document.getElementById('res-paineis').textContent = paineis;
   document.getElementById('res-geracao').textContent = fmt(geracao_mensal) + ' kWh';
-  document.getElementById('res-invest').textContent = 'R$ ' + fmt(investimento);
-  document.getElementById('res-payback').textContent = payback_anos.toFixed(1) + ' anos';
-  document.getElementById('payback-bar').style.width = Math.min((payback_anos / 20) * 100, 100) + '%';
-  
-  // Atualizar detalhes financeiros ampliados
-  document.getElementById('res-economia-mensal').textContent = 'R$ ' + fmt(economia_mensal);
-  document.getElementById('res-economia-total').textContent = 'R$ ' + fmt(economia_total_25_anos);
+  document.getElementById('res-invest').textContent = fmtR$(finalPrice);
+
+  // Payback
+  const paybackStr = paybackAnos > 0
+    ? paybackMeses > 0
+      ? `${paybackAnos} anos e ${paybackMeses} meses`
+      : `${paybackAnos} anos`
+    : `${paybackMeses} meses`;
+  document.getElementById('res-payback').textContent = paybackStr;
+  document.getElementById('payback-bar').style.width =
+    Math.min(((paybackAnos + paybackMeses / 12) / 20) * 100, 100) + '%';
+
+  // Detalhes financeiros ampliados
+  document.getElementById('res-economia-mensal').textContent = fmtR$(economia_mensal);
+  document.getElementById('res-economia-total').textContent = fmtR$(Math.round(totalEconomy));
   document.getElementById('res-roi').textContent = roi + '%';
+  document.getElementById('res-sem-solar').textContent = fmtR$(noSystemMonthlyPrice);
+  document.getElementById('res-com-solar').textContent = fmtR$(systemMonthlyPrice);
   document.getElementById('res-co2').textContent = fmt(co2_evitado) + ' t';
 
+  /* ---- 11. MOSTRAR RESULTADOS ---- */
   const results = document.getElementById('sim-results');
   results.classList.add('show');
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1131,29 +1221,29 @@ function showFormToast() {
   // Seleciona TODOS os elementos com classes que terminam em -reveal
   // Exceto aqueles que já têm observers específicos (fluxo-reveal, processo-reveal, faq-reveal)
   const allRevealElements = document.querySelectorAll('[class*="-reveal"]');
-  
+
   // Filtra elementos que já têm observers específicos ou que já foram tratados
   const revealsToObserve = Array.from(allRevealElements).filter(el => {
     const className = el.className;
     // Não observa elementos que já têm observers específicos
-    if (className.includes('fluxo-reveal') || 
-        className.includes('processo-reveal') || 
-        className.includes('faq-reveal')) {
+    if (className.includes('fluxo-reveal') ||
+      className.includes('processo-reveal') ||
+      className.includes('faq-reveal')) {
       return false;
     }
-    
+
     // Inclui apenas elementos com classes conhecidas de reveal
-    return className.includes('projetos-reveal') || 
-           className.includes('depoimentos-reveal') || 
-           className.includes('depo-reveal') || 
-           className.includes('contato-reveal') ||
-           className.includes('beneficios-reveal') ||
-           className.includes('calc-reveal') ||
-           className.includes('historia-reveal');
+    return className.includes('projetos-reveal') ||
+      className.includes('depoimentos-reveal') ||
+      className.includes('depo-reveal') ||
+      className.includes('contato-reveal') ||
+      className.includes('beneficios-reveal') ||
+      className.includes('calc-reveal') ||
+      className.includes('historia-reveal');
   });
-  
+
   if (revealsToObserve.length === 0) return;
-  
+
   const revealObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1166,34 +1256,34 @@ function showFormToast() {
       }
     });
   }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-  
+
   revealsToObserve.forEach(el => revealObserver.observe(el));
-  
+
   // Para debug: mostra quantos elementos estão sendo observados
   console.log(`[Reveal Observer] Observando ${revealsToObserve.length} elementos`);
 })();
 
 // ===== EXECUTAR MÓDULOS NÃO AUTOEXECUTÁVEIS QUANDO O DOM ESTIVER PRONTO =====
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Inicializar contadores do hero
   initCounters();
-  
+
   // Inicializar model viewer 3D
   initModelViewer();
-  
+
   // Inicializar smooth scroll
   initSmoothScroll();
-  
+
   // Inicializar fluxo de energia
   desenharLinhasFluxo();
   window.addEventListener('resize', desenharLinhasFluxo);
-  
+
   // Inicializar slider de depoimentos
   initDepoimentosSlider();
-  
+
   // Inicializar formulário de contato
   initContatoForm();
-  
+
   // Inicializar todas as reveals
   initAllReveals();
 });
