@@ -589,7 +589,7 @@ function calcularSolar() {
 
   /* ---- 8. TOTAIS FINAIS ---- */
   const totalEconomy = cashFlow[24] + finalPrice; // economia bruta em 25 anos
-  const roi = Math.round(((cashFlow[24]) / finalPrice) * 100);
+  const roi = Math.round((cashFlow[24] / finalPrice / 25) * 100);
   const co2_evitado = Math.round(geracao_mensal * 12 * 25 * 0.000084); // toneladas CO₂
 
   /* ---- 9. FORMATAÇÃO ---- */
